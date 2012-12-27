@@ -73,14 +73,15 @@ sub _gen_appender_config {
         $params->{max_files} = $ospec->{histories}+1 if $ospec->{histories};
         $params->{max_age}   = $ospec->{max_age} if $ospec->{max_age};
     } elsif ($name =~ /^file/i) {
-        $class = "Log::Dispatch::FileRotate";
-        $params->{mode}  = 'append';
-        $params->{filename} = $ospec->{path};
-        $params->{size}  = $ospec->{size} if $ospec->{size};
-        $params->{max}   = $ospec->{histories}+1 if $ospec->{histories};
-        $params->{DatePattern} = $ospec->{date_pattern}
-            if $ospec->{date_pattern};
-        $params->{TZ} = $ospec->{tz} if $ospec->{tz};
+        $class = "Log::Dispatch::FileWriteRotate";
+        my ($dir, $prefix) = $ospec->{path} =~ m!(.+)/(.+)!;
+        $dir //= "."; $prefix //= $ospec->{path};
+        $params->{dir}       = $dir;
+        $params->{prefix}    = $prefix;
+        $params->{suffix}    = $ospec->{suffix};
+        $params->{size}      = $ospec->{max_size};
+        $params->{period}    = $ospec->{period};
+        $params->{histories} = $ospec->{histories};
     } elsif ($name =~ /^screen/i) {
         $class = "Log::Log4perl::Appender::" .
             ($ospec->{color} ? "ScreenColoredLevels" : "Screen");
@@ -930,6 +931,13 @@ multiple outputs, string patterns, etc see L</USING AND EXAMPLES> and init().
 IMPORTANT: Please read L</"ROAD TO 1.0"> on some incompatibilities in the near
 future, before 1.0 is released.
 
+NOTE ABOUT THE 0.x.9.y VERSIONS: The .+.9.x series from Log-Any-App09 uses a
+different backend for file output: L<Log::Dispatch::FileWriteRotate> instead of
+L<Log::Dispatch::FileRotate>. The parameters are also slightly different (no
+more C<DatePattern>, adds C<period> and C<suffix>). It is a stop-gap measure
+before 1.0 to work more easily with L<Process::Govern>. It is used by
+Perinci::CmdLine.
+
 Log::Any::App is a convenient combo for L<Log::Any> and L<Log::Log4perl>
 (although alternative backends beside Log4perl might be considered in the
 future). To use Log::Any::App you need to be sold on the idea of Log::Any first,
@@ -1389,7 +1397,7 @@ If everything fails, it defaults to 'warn'.
 
 =item -file => 0 | 1|yes|true | PATH | {opts} | [{opts}, ...]
 
-Specify output to one or more files, using L<Log::Dispatch::FileRotate>.
+Specify output to one or more files, using L<Log::Dispatch::FileWriteRotate>.
 
 If the argument is a false boolean value, file logging will be turned off. If
 argument is a true value that matches /^(1|yes|true)$/i, file logging will be
@@ -1397,10 +1405,10 @@ turned on with default path, etc. If the argument is another scalar value then
 it is assumed to be a path. If the argument is a hashref, then the keys of the
 hashref must be one of: C<level>, C<path>, C<max_size> (maximum size before
 rotating, in bytes, 0 means unlimited or never rotate), C<histories> (number of
-old files to keep, excluding the current file), C<date_pattern> (will be passed
-to DatePattern argument in FileRotate's constructor), C<tz> (will be passed to
-TZ argument in FileRotate's constructor), C<category> (a string of ref to array
-of strings), C<category_level> (a hashref, similar to -category_level),
+old files to keep, excluding the current file), C<suffix> (will be passed to
+Log::Dispatch::FileWriteRotate's constructor), C<period> (will be passed to
+Log::Dispatch::FileWriteRotate's constructor), C<category> (a string of ref to
+array of strings), C<category_level> (a hashref, similar to -category_level),
 C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern).
 
 If the argument is an arrayref, it is assumed to be specifying multiple files,

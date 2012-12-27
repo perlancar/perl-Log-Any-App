@@ -1,8 +1,9 @@
-#!perl -T
+#!perl
 
 # test actual generated logs: mixing per-output level and per-category level,
 # category alias
 
+use 5.010;
 use lib './t';
 BEGIN {
     require 'testlib.pl';
