@@ -11,7 +11,9 @@ use File::Spec;
 use Log::Any 0.11;
 use Log::Any::Adapter;
 
-# VERSION
+our $VERSION = 0.41; # xVERSION
+
+our $ALT = "FWR";
 
 use vars qw($dbg_ctx);
 
@@ -928,15 +930,18 @@ multiple outputs, string patterns, etc see L</USING AND EXAMPLES> and init().
 
 =head1 DESCRIPTION
 
+THIS MODULE IS AN ALTERNATIVE IMPLEMENTATION (Alt-Log-Any-App-FWR). See L<Alt>
+for more details about the Alt concept. This implementation uses a different
+backend for file output: L<Log::Dispatch::FileWriteRotate> instead of
+L<Log::Dispatch::FileRotate>. The goal is to interoperate more easily with other
+modules that uses L<File::Write::Rotate>, like L<Process::Govern>. The
+parameters are also slightly different (no more C<DatePattern>, adds C<period>
+and C<suffix>). The future 1.0 of Log::Any::App will probably also use
+Log::Dispatch::FileWriteRotate. The rest of the documentation is from the
+original Log::Any::App.
+
 IMPORTANT: Please read L</"ROAD TO 1.0"> on some incompatibilities in the near
 future, before 1.0 is released.
-
-NOTE ABOUT THE 0.x.9.y VERSIONS: The .+.9.x series from Log-Any-App09 uses a
-different backend for file output: L<Log::Dispatch::FileWriteRotate> instead of
-L<Log::Dispatch::FileRotate>. The parameters are also slightly different (no
-more C<DatePattern>, adds C<period> and C<suffix>). It is a stop-gap measure
-before 1.0 to work more easily with L<Process::Govern>. It is used by
-Perinci::CmdLine.
 
 Log::Any::App is a convenient combo for L<Log::Any> and L<Log::Log4perl>
 (although alternative backends beside Log4perl might be considered in the
