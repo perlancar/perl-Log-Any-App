@@ -78,12 +78,13 @@ sub _gen_appender_config {
         $class = "Log::Dispatch::FileWriteRotate";
         my ($dir, $prefix) = $ospec->{path} =~ m!(.+)/(.+)!;
         $dir //= "."; $prefix //= $ospec->{path};
-        $params->{dir}       = $dir;
-        $params->{prefix}    = $prefix;
-        $params->{suffix}    = $ospec->{suffix};
-        $params->{size}      = $ospec->{max_size};
-        $params->{period}    = $ospec->{period};
-        $params->{histories} = $ospec->{histories};
+        $params->{dir}         = $dir;
+        $params->{prefix}      = $prefix;
+        $params->{suffix}      = $ospec->{suffix};
+        $params->{size}        = $ospec->{max_size};
+        $params->{period}      = $ospec->{period};
+        $params->{histories}   = $ospec->{histories};
+        $params->{buffer_size} = $ospec->{buffer_size};
     } elsif ($name =~ /^screen/i) {
         $class = "Log::Log4perl::Appender::" .
             ($ospec->{color} ? "ScreenColoredLevels" : "Screen");
