@@ -521,8 +521,8 @@ sub _default_file {
             "/var/log/$spec->{name}.log", # XXX and on Windows?
         max_size => undef,
         histories => undef,
-        date_pattern => undef,
-        tz => undef,
+        period => undef,
+        buffer_size => undef,
         category => '',
         pattern_style => _set_pattern_style('daemon'),
         pattern => undef,
@@ -1409,6 +1409,7 @@ hashref must be one of: C<level>, C<path>, C<max_size> (maximum size before
 rotating, in bytes, 0 means unlimited or never rotate), C<histories> (number of
 old files to keep, excluding the current file), C<suffix> (will be passed to
 Log::Dispatch::FileWriteRotate's constructor), C<period> (will be passed to
+Log::Dispatch::FileWriteRotate's constructor), C<buffer_size> (will be passed to
 Log::Dispatch::FileWriteRotate's constructor), C<category> (a string of ref to
 array of strings), C<category_level> (a hashref, similar to -category_level),
 C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern).
