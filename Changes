@@ -1,5 +1,10 @@
 Revision history for Alt-Log-Any-App-FWR
 
+0.03     2012-12-28 (SHARYANTO)
+
+         Support buffer_size for file output.
+
+
 0.02     2012-12-28 (SHARYANTO)
 
          No functional changes. Move information about the alternate
