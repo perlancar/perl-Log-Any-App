@@ -1,5 +1,12 @@
 Revision history for Alt-Log-Any-App-FWR
 
+0.04     2012-12-28 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - Haven't passed buffer_size to Log::Dispatch::FileWriteRotate.
+
+
 0.03     2012-12-28 (SHARYANTO)
 
          Support buffer_size for file output.
