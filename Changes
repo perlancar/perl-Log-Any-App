@@ -1,6 +1,6 @@
 Revision history for Alt-Log-Any-App-FWR
 
-0.01     2012-03-17 (SHARYANTO) (not yet released)
+0.01     2012-03-17 (SHARYANTO)
 
          First release as Alt-Log-Any-App-FWR. Renamed from Log-Any-App09. Also,
          version number reset to 0.01 while Log::Any::App is back to 0.41 (now
