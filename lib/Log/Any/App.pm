@@ -11,7 +11,7 @@ use File::Spec;
 use Log::Any 0.11;
 use Log::Any::Adapter;
 
-our $VERSION = 0.41; # xVERSION
+our $VERSION = 0.42; # xVERSION
 
 our $ALT = "FWR";
 
