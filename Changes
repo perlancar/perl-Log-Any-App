@@ -1,5 +1,11 @@
 Revision history for Alt-Log-Any-App-FWR
 
+0.06     2013-01-18 (SHARYANTO)
+
+         No functional changes. Synchronize Log::Any::App's version with
+         Log-Any-App's (0.43).
+
+
 0.05     2012-12-28 (SHARYANTO)
 
          No functional changes. Update Log::Any::App version to sync with
