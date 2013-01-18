@@ -19,6 +19,7 @@ use vars qw($dbg_ctx);
 
 my %PATTERN_STYLES = (
     plain             => '%m',
+    plain_nl          => '%m%n',
     script_short      => '[%r] %m%n',
     script_long       => '[%d] %m%n',
     daemon            => '[pid %P] [%d] %m%n',
@@ -609,7 +610,8 @@ sub _default_screen {
                                    $ENV{LOG_CATEGORY_LEVEL},
                                    $spec->{category_level}),
         category => '',
-        pattern_style => _set_pattern_style('script_short'),
+        pattern_style => _set_pattern_style(
+            $ENV{LOG_ELAPSED_TIME_IN_SCREEN} ? 'script_short' : 'plain_nl'),
         pattern => undef,
     };
 }
@@ -1557,10 +1559,17 @@ C<pattern_style> instead of directly specifying C<pattern>. example:
 
                 Equivalent to pattern: '%m'
 
+ plain_nl       Message plus newline. The default  Message
+                for screen without
+                LOG_ELAPSED_TIME_IN_SCREEN.
+
+                Equivalent to pattern: '%m%n'
+
  script_short   For scripts that run for a short   [234] Message
                 time (a few seconds). Shows just
                 the number of milliseconds. This
-                is the default for screen.
+                is the default for screen under
+                LOG_ELAPSED_TIME_IN_SCREEN.
 
                 Equivalent to pattern:
                 '[%r] %m%n'
@@ -1646,6 +1655,10 @@ Force-enable or disable color:
 Turn on Log::Any::App's debugging:
 
  LOGANYAPP_DEBUG (bool)
+
+Turn on showing elapsed time in screen:
+
+ LOG_ELAPSED_TIME_IN_SCREEN (bool)
 
 
 =head1 FAQ
