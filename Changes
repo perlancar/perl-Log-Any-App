@@ -1,5 +1,10 @@
 Revision history for Alt-Log-Any-App-FWR
 
+0.07     2013-08-21 (SHARYANTO)
+
+         - Add LOG_ENV.
+
+
 0.06     2013-01-18 (SHARYANTO)
 
          - No functional changes. Synchronize Log::Any::App's version with

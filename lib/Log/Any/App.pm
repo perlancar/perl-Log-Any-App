@@ -2,13 +2,13 @@ package Log::Any::App;
 
 # i need this to run on centos 5.x. otherwise all my other servers are debian
 # 5.x and 6.x+ (perl 5.010).
-use 5.008;
+use 5.008000;
 use strict;
 use warnings;
 
 use File::Path qw(make_path);
 use File::Spec;
-use Log::Any 0.11;
+use Log::Any 0.14;
 use Log::Any::Adapter;
 
 our $VERSION = 0.43; # xVERSION
