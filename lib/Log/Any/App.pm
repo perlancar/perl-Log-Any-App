@@ -58,7 +58,13 @@ sub init {
     $caller ||= caller();
 
     my $spec = _parse_opts($args, $caller);
-    _init_log4perl($spec) if $spec->{log} && $spec->{init};
+    if ($spec->{log} && $spec->{init}) {
+        _init_log4perl($spec);
+        if ($ENV{LOG_ENV}) {
+           my $log_main = Log::Any->get_logger(category => 'main');
+           $log_main->tracef("Environment variables: %s", \%ENV);
+       }
+    }
     $spec;
 }
 
@@ -1613,11 +1619,11 @@ If you have a favorite pattern style, please do share them.
 
 Below is summary of environment variables used.
 
-Turning on/off logging:
+=head2 Turning on/off logging
 
  LOG (bool)
 
-For setting general level:
+=head2 Setting general level
 
  TRACE (bool)       setting general level to trace
  DEBUG (bool)       setting general level to debug
@@ -1625,40 +1631,54 @@ For setting general level:
  QUIET (bool)       setting general level to error (turn off warnings)
  LOG_LEVEL (str)
 
-Setting per-output level:
+=head2 Setting per-output level
 
  FILE_TRACE, FILE_DEBUG, FILE_VERBOSE, FILE_QUIET, FILE_LOG_LEVEL
  SCREEN_TRACE and so on
  DIR_TRACE and so on
  SYSLOG_TRACE and so on
 
-Setting per-category level:
+=head2 Setting per-category level
 
  LOG_CATEGORY_LEVEL (hash, json)
  LOG_CATEGORY_ALIAS (hash, json)
 
-Setting per-output, per-category level:
+=head2 Setting per-output, per-category level
 
  FILE_LOG_CATEGORY_LEVEL
  SCREEN_LOG_CATEGORY_LEVEL
  and so on
 
-Controlling extra fields to log:
+=head2 Controlling extra fields to log
 
  LOG_SHOW_LOCATION
  LOG_SHOW_CATEGORY
 
-Force-enable or disable color:
+=head2 Force-enable or disable color
 
  COLOR (bool)
 
-Turn on Log::Any::App's debugging:
+=head2 Turn on Log::Any::App's debugging
 
  LOGANYAPP_DEBUG (bool)
 
-Turn on showing elapsed time in screen:
+=head2 Turn on showing elapsed time in screen
 
  LOG_ELAPSED_TIME_IN_SCREEN (bool)
+
+=head2 Extra things to log
+
+=over
+
+=item * LOG_ENV (bool)
+
+If set to 1, will dump environment variables at the start of program. Useful for
+debugging e.g. CGI or git hook scripts. You might also want to look at
+L<Log::Any::Adapter::Core::Patch::UseDataDump> to make the dump more readable.
+
+Logging will be done under category C<main> and at level C<trace>.
+
+=back
 
 
 =head1 FAQ

@@ -233,4 +233,6 @@ test_init(
 # XXX test LOG_CATEGORY_ALIAS & LOG_CATEGORY_LEVEL & ${OUT}_LOG_CATEGORY_LEVEL
 # XXX test LOG_SHOW_LOCATION
 
+# XXX test LOG_ENV
+
 done_testing();
