@@ -1024,7 +1024,7 @@ To change level from inside the script:
 
  use Log::Any::App '$log', -level => 'debug';
 
-This is useful if you want a fixed level that cannot be overriden by other
+This is useful if you want a fixed level that cannot be overridden by other
 mechanisms (since setting level using import argument has the highest priority).
 But oftentimes what you want is changing level without modifying the script
 itself. Thereby, just write:
@@ -1096,7 +1096,7 @@ basis:
      # and so on
  }
 
-If a per-output level is not specifed, it will default to the general log level.
+If a per-output level is not specified, it will default to the general log level.
 
 =head2 Enabling/disabling output
 
@@ -1108,7 +1108,7 @@ or:
 
  use Log::Any::App '$log', -screen => {level=>'off'};
 
-and this won't allow the output to be reenabled from outside the script. However
+and this won't allow the output to be re-enabled from outside the script. However
 if you do this:
 
  use Log::Any::App;
@@ -1764,7 +1764,7 @@ some incompatibilities, please read this section carefully.
 As I I<love> specifying log options from environment, I will make I<every>
 init() options configurable from outside the script
 (environment/command-line/control file). Of course, init() arguments still take
-precedence for authors that do not want some/all options to be overriden from
+precedence for authors that do not want some/all options to be overridden from
 outside.
 
 =item * Reorganization of command-line/environment names
