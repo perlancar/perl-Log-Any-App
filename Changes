@@ -1,5 +1,13 @@
 Revision history for Alt-Log-Any-App-FWR
 
+0.08     2014-01-27 (SHARYANTO)
+
+         - Increase Log::Any::App version to 0.44.
+
+         - Add filtering options
+           (filter_{text,no_text,citext,no_citext,re,no_re}).
+
+
 0.07     2013-08-21 (SHARYANTO)
 
          - Add LOG_ENV.
