@@ -36,12 +36,15 @@ my $is_daemon;
 
 # poor man's version of 5.10's //
 sub _ifdef {
-    my ($a, $b) = @_;
-    defined($a) ? $a : $b;
+    my $def = pop @_;
+    for (@_) {
+        return $_ if defined($_);
+    }
+    $def;
 }
 
-# m=multi, j=as json (except the last default)
-sub _ifdefmj {
+# j=as json (except the last default)
+sub _ifdefj {
     require JSON;
 
     my $def = pop @_;
@@ -84,7 +87,7 @@ sub _gen_appender_config {
     } elsif ($name =~ /^file/i) {
         $class = "Log::Dispatch::FileWriteRotate";
         my ($dir, $prefix) = $ospec->{path} =~ m!(.+)/(.+)!;
-        $dir //= "."; $prefix //= $ospec->{path};
+        $dir ||= "."; $prefix ||= $ospec->{path};
         $params->{dir}         = $dir;
         $params->{prefix}      = $prefix;
         $params->{suffix}      = $ospec->{suffix};
@@ -342,7 +345,7 @@ sub _parse_opts {
 
     my $spec = {};
 
-    $spec->{log} = $ENV{LOG} // 1;
+    $spec->{log} = _ifdef($ENV{LOG}, 1);
     if (defined $opts{log}) {
         $spec->{log} = $opts{log};
         delete $opts{log};
@@ -372,7 +375,7 @@ sub _parse_opts {
     }
     delete $opts{level};
 
-    $spec->{category_alias} = _ifdefmj($ENV{LOG_CATEGORY_ALIAS}, {});
+    $spec->{category_alias} = _ifdefj($ENV{LOG_CATEGORY_ALIAS}, {});
     if (defined $opts{category_alias}) {
         die "category_alias must be a hashref"
             unless ref($opts{category_alias}) eq 'HASH';
@@ -522,7 +525,7 @@ sub _default_file {
     }
     return {
         level => $level,
-        category_level => _ifdefmj($ENV{FILE_LOG_CATEGORY_LEVEL},
+        category_level => _ifdefj($ENV{FILE_LOG_CATEGORY_LEVEL},
                                    $ENV{LOG_CATEGORY_LEVEL},
                                    $spec->{category_level}),
         path => $> ? File::Spec->catfile(File::HomeDir->my_home, "$spec->{name}.log") :
@@ -573,7 +576,7 @@ sub _default_dir {
     }
     return {
         level => $level,
-        category_level => _ifdefmj($ENV{DIR_LOG_CATEGORY_LEVEL},
+        category_level => _ifdefj($ENV{DIR_LOG_CATEGORY_LEVEL},
                                    $ENV{LOG_CATEGORY_LEVEL},
                                    $spec->{category_level}),
         path => $> ? File::Spec->catfile(File::HomeDir->my_home, "log", $spec->{name}) :
@@ -639,7 +642,7 @@ sub _default_syslog {
     }
     return {
         level => $level,
-        category_level => _ifdefmj($ENV{SYSLOG_LOG_CATEGORY_LEVEL},
+        category_level => _ifdefj($ENV{SYSLOG_LOG_CATEGORY_LEVEL},
                                    $ENV{LOG_CATEGORY_LEVEL},
                                    $spec->{category_level}),
         ident => $spec->{name},
@@ -712,7 +715,7 @@ sub _check_level {
 
 sub _set_level {
     my ($prefix, $which, $spec) = @_;
-    #use Data::Dumper; print Dumper $spec;
+    #use Data::Dump; dd $spec;
     my $p_ = $prefix ? "${prefix}_" : "";
     my $P_ = $prefix ? uc("${prefix}_") : "";
     my $F_ = $prefix ? ucfirst("${prefix}_") : "";
