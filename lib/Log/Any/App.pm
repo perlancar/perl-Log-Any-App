@@ -120,22 +120,75 @@ sub _gen_appender_config {
     );
 }
 
+sub _lit {
+    require Data::Dump;
+    Data::Dump::dump(shift);
+}
+
 sub _gen_l4p_config {
     my ($spec) = @_;
 
+    my @otypes = qw(file dir screen syslog);
+
+    # we use a custom perl code to implement filter_* specs.
+    my @fccode;
+    push @fccode, 'my %p = @_';
+    push @fccode, 'my $str';
+    for my $ospec (map { @{ $spec->{$_} } } @otypes) {
+        if (defined $ospec->{filter_text}) {
+            push @fccode, '$str = '._lit($ospec->{filter_text});
+            push @fccode, 'return 0 if $p{name} eq '._lit($ospec->{name}).
+                ' && index($_, $str) == -1';
+        }
+        if (defined $ospec->{filter_no_text}) {
+            push @fccode, '$str = '._lit($ospec->{filter_no_text});
+            push @fccode, 'return 0 if $p{name} eq '._lit($ospec->{name}).
+                ' && index($_, $str) > -1';
+        }
+        if (defined $ospec->{filter_citext}) {
+            push @fccode, '$str = '._lit($ospec->{filter_citext});
+            push @fccode, 'return 0 if $p{name} eq '._lit($ospec->{name}).
+                ' && !/\Q$str/io';
+        }
+        if (defined $ospec->{filter_no_citext}) {
+            push @fccode, '$str = '._lit($ospec->{filter_no_citext});
+            push @fccode, 'return 0 if $p{name} eq '._lit($ospec->{name}).
+                ' && /\Q$str/io';
+        }
+        if (defined $ospec->{filter_re}) {
+            push @fccode, '$str = '._lit($ospec->{filter_re});
+            push @fccode, 'return 0 if $p{name} eq '._lit($ospec->{name}).
+                ' && $_ !~ ' . (ref($ospec->{filter_re}) eq 'Regexp' ? '$str' : 'qr/$str/o');
+        }
+        if (defined $ospec->{filter_no_re}) {
+            push @fccode, '$str = '._lit($ospec->{filter_no_re});
+            push @fccode, 'return 0 if $p{name} eq '._lit($ospec->{name}).
+                ' && $_ =~ ' . (ref($ospec->{filter_re}) eq 'Regexp' ? '$str' : 'qr/$str/o');
+        }
+    }
+    push @fccode, "1";
+    my $fccode = join "; ", @fccode;
+
     my $filters_str = join(
         "",
-        "log4perl.filter.FilterOFF = Log::Log4perl::Filter::LevelRange\n",
-        "log4perl.filter.FilterOFF.LevelMin = TRACE\n",
-        "log4perl.filter.FilterOFF.LevelMax = FATAL\n",
-        "log4perl.filter.FilterOFF.AcceptOnMatch = false\n",
+        "log4perl.filter.FilterCustom = sub { $fccode }\n",
         "\n",
+        "log4perl.filter.FilterOFF0 = Log::Log4perl::Filter::LevelRange\n",
+        "log4perl.filter.FilterOFF0.LevelMin = TRACE\n",
+        "log4perl.filter.FilterOFF0.LevelMax = FATAL\n",
+        "log4perl.filter.FilterOFF0.AcceptOnMatch = false\n",
+        "\n",
+        "log4perl.filter.FilterOFF = Log::Log4perl::Filter::Boolean\n",
+        "log4perl.filter.FilterOFF.logic = FilterOFF0 && FilterCustom\n",
         map {join(
             "",
-            "log4perl.filter.Filter$_ = Log::Log4perl::Filter::LevelRange\n",
-            "log4perl.filter.Filter$_.LevelMin = $_\n",
-            "log4perl.filter.Filter$_.LevelMax = FATAL\n",
-            "log4perl.filter.Filter$_.AcceptOnMatch = true\n",
+            "log4perl.filter.Filter${_}0 = Log::Log4perl::Filter::LevelRange\n",
+            "log4perl.filter.Filter${_}0.LevelMin = $_\n",
+            "log4perl.filter.Filter${_}0.LevelMax = FATAL\n",
+            "log4perl.filter.Filter${_}0.AcceptOnMatch = true\n",
+            "\n",
+            "log4perl.filter.Filter$_ = Log::Log4perl::Filter::Boolean\n",
+            "log4perl.filter.Filter$_.logic = Filter${_}0 && FilterCustom\n",
             "\n",
         )} qw(FATAL ERROR WARN INFO DEBUG), # TRACE
     );
@@ -145,10 +198,7 @@ sub _gen_l4p_config {
     my %ospecs; # key = oname; this is just a shortcut to get ospec
 
     # 1. list all levels for each category and output
-    for my $ospec (@{ $spec->{dir} },
-                   @{ $spec->{file} },
-                   @{ $spec->{screen} },
-                   @{ $spec->{syslog} }) {
+    for my $ospec (map { @{ $spec->{$_} } } @otypes) {
         my $oname = $ospec->{name};
         $ospecs{$oname} = $ospec;
         $levels{$oname} = {};
@@ -237,6 +287,7 @@ sub _gen_l4p_config {
                 $filter = "Filter".uc($olevel);
             } else {
                 $apd_name = $oname;
+                $filter = "FilterCustom";
             }
             unless ($generated_appenders{$apd_name}++) {
                 $apd_str .= _gen_appender_config($ospec, $apd_name, $filter).
@@ -281,9 +332,9 @@ sub _init_log4perl {
 
     my $config_str = _gen_l4p_config($spec);
     if ($spec->{dump}) {
-        require Data::Dumper;
+        require Data::Dump;
         print "Log::Any::App configuration:\n",
-            Data::Dumper->new([$spec])->Terse(1)->Dump;
+            Data::Dump::dump($spec);
         print "Log4perl configuration: <<EOC\n", $config_str, "EOC\n";
     }
 
@@ -413,6 +464,37 @@ sub _parse_opts {
         delete $opts{dump};
     }
 
+    $spec->{filter_text} = $ENV{LOG_FILTER_TEXT};
+    if (defined $opts{filter_text}) {
+        $spec->{filter_text} = $opts{filter_text};
+        delete $opts{filter_text};
+    }
+    $spec->{filter_no_text} = $ENV{LOG_FILTER_NO_TEXT};
+    if (defined $opts{filter_no_text}) {
+        $spec->{filter_no_text} = $opts{filter_no_text};
+        delete $opts{filter_no_text};
+    }
+    $spec->{filter_citext} = $ENV{LOG_FILTER_CITEXT};
+    if (defined $opts{filter_citext}) {
+        $spec->{filter_citext} = $opts{filter_citext};
+        delete $opts{filter_citext};
+    }
+    $spec->{filter_no_citext} = $ENV{LOG_FILTER_NO_CITEXT};
+    if (defined $opts{filter_no_citext}) {
+        $spec->{filter_no_citext} = $opts{filter_no_citext};
+        delete $opts{filter_no_citext};
+    }
+    $spec->{filter_re} = $ENV{LOG_FILTER_RE};
+    if (defined $opts{filter_re}) {
+        $spec->{filter_re} = $opts{filter_re};
+        delete $opts{filter_re};
+    }
+    $spec->{filter_no_re} = $ENV{LOG_FILTER_NO_RE};
+    if (defined $opts{filter_no_re}) {
+        $spec->{filter_no_re} = $opts{filter_no_re};
+        delete $opts{filter_no_re};
+    }
+
     $spec->{file} = [];
     _parse_opt_file($spec, _ifdef($opts{file}, ($0 ne '-e' ? 1:0)));
     delete $opts{file};
@@ -432,11 +514,11 @@ sub _parse_opts {
     if (keys %opts) {
         die "Unknown option(s) ".join(", ", keys %opts)." Known opts are: ".
             "log, name, level, category_level, category_alias, dump, init, ".
-                "file, dir, screen, syslog";
+                "filter_{,no_}{text,citext,re}, file, dir, screen, syslog";
     }
 
   END_PARSE_OPTS:
-    #use Data::Dumper; print Dumper $spec;
+    #use Data::Dump; dd $spec;
     $spec;
 }
 
@@ -526,8 +608,8 @@ sub _default_file {
     return {
         level => $level,
         category_level => _ifdefj($ENV{FILE_LOG_CATEGORY_LEVEL},
-                                   $ENV{LOG_CATEGORY_LEVEL},
-                                   $spec->{category_level}),
+                                  $ENV{LOG_CATEGORY_LEVEL},
+                                  $spec->{category_level}),
         path => $> ? File::Spec->catfile(File::HomeDir->my_home, "$spec->{name}.log") :
             "/var/log/$spec->{name}.log", # XXX and on Windows?
         max_size => undef,
@@ -537,6 +619,13 @@ sub _default_file {
         category => '',
         pattern_style => _set_pattern_style('daemon'),
         pattern => undef,
+
+        filter_text      => _ifdef($ENV{FILE_LOG_FILTER_TEXT}, $spec->{filter_text}),
+        filter_no_text   => _ifdef($ENV{FILE_LOG_FILTER_NO_TEXT}, $spec->{filter_no_text}),
+        filter_citext    => _ifdef($ENV{FILE_LOG_FILTER_CITEXT}, $spec->{filter_citext}),
+        filter_no_citext => _ifdef($ENV{FILE_LOG_FILTER_NO_CITEXT}, $spec->{filter_no_citext}),
+        filter_re        => _ifdef($ENV{FILE_LOG_FILTER_RE}, $spec->{filter_re}),
+        filter_no_re     => _ifdef($ENV{FILE_LOG_FILTER_NO_RE}, $spec->{filter_no_re}),
     };
 }
 
@@ -588,6 +677,13 @@ sub _default_dir {
         pattern_style => _set_pattern_style('plain'),
         pattern => undef,
         filename_pattern => undef,
+
+        filter_text      => _ifdef($ENV{DIR_LOG_FILTER_TEXT}, $spec->{filter_text}),
+        filter_no_text   => _ifdef($ENV{DIR_LOG_FILTER_NO_TEXT}, $spec->{filter_no_text}),
+        filter_citext    => _ifdef($ENV{DIR_LOG_FILTER_CITEXT}, $spec->{filter_citext}),
+        filter_no_citext => _ifdef($ENV{DIR_LOG_FILTER_NO_CITEXT}, $spec->{filter_no_citext}),
+        filter_re        => _ifdef($ENV{DIR_LOG_FILTER_RE}, $spec->{filter_re}),
+        filter_no_re     => _ifdef($ENV{DIR_LOG_FILTER_NO_RE}, $spec->{filter_no_re}),
     };
 }
 
@@ -615,13 +711,20 @@ sub _default_screen {
         color => _ifdef($ENV{COLOR}, (-t STDOUT)),
         stderr => 1,
         level => $level,
-        category_level => _ifdefmj($ENV{SCREEN_LOG_CATEGORY_LEVEL},
+        category_level => _ifdefj($ENV{SCREEN_LOG_CATEGORY_LEVEL},
                                    $ENV{LOG_CATEGORY_LEVEL},
                                    $spec->{category_level}),
         category => '',
         pattern_style => _set_pattern_style(
             $ENV{LOG_ELAPSED_TIME_IN_SCREEN} ? 'script_short' : 'plain_nl'),
         pattern => undef,
+
+        filter_text      => _ifdef($ENV{SCREEN_LOG_FILTER_TEXT}, $spec->{filter_text}),
+        filter_no_text   => _ifdef($ENV{SCREEN_FILTER_NO_TEXT}, $spec->{filter_no_text}),
+        filter_citext    => _ifdef($ENV{SCREEN_FILTER_CITEXT}, $spec->{filter_citext}),
+        filter_no_citext => _ifdef($ENV{SCREEN_FILTER_NO_CITEXT}, $spec->{filter_no_citext}),
+        filter_re        => _ifdef($ENV{SCREEN_FILTER_RE}, $spec->{filter_re}),
+        filter_no_re     => _ifdef($ENV{SCREEN_FILTER_NO_RE}, $spec->{filter_no_re}),
     };
 }
 
@@ -650,6 +753,13 @@ sub _default_syslog {
         pattern_style => _set_pattern_style('syslog'),
         pattern => undef,
         category => '',
+
+        filter_text      => _ifdef($ENV{SYSLOG_LOG_FILTER_TEXT}, $spec->{filter_text}),
+        filter_no_text   => _ifdef($ENV{SYSLOG_FILTER_NO_TEXT}, $spec->{filter_no_text}),
+        filter_citext    => _ifdef($ENV{SYSLOG_FILTER_CITEXT}, $spec->{filter_citext}),
+        filter_no_citext => _ifdef($ENV{SYSLOG_FILTER_NO_CITEXT}, $spec->{filter_no_citext}),
+        filter_re        => _ifdef($ENV{SYSLOG_FILTER_RE}, $spec->{filter_re}),
+        filter_no_re     => _ifdef($ENV{SYSLOG_FILTER_NO_RE}, $spec->{filter_no_re}),
     };
 }
 
@@ -1409,6 +1519,35 @@ C<$DEBUG> or C<$debug>.
 
 If everything fails, it defaults to 'warn'.
 
+=item -filter_text => STR
+
+Only show log lines matching STR. Default from C<LOG_FILTER_TEXT> environment.
+
+=item -filter_no_text => STR
+
+Only show log lines not matching STR. Default from C<LOG_FILTER_NO_TEXT>
+environment.
+
+=item -filter_citext => STR
+
+Only show log lines matching STR (case insensitive). Default from
+C<LOG_FILTER_CITEXT> environment.
+
+=item -filter_no_citext => STR
+
+Only show log lines not matching STR (case insensitive). Default from
+C<LOG_FILTER_NO_CITEXT> environment.
+
+=item -filter_re => RE
+
+Only show log lines matching regex pattern RE. Default from C<LOG_FILTER_RE>
+environment.
+
+=item -filter_no_re => RE
+
+Only show log lines not matching regex pattern RE. Default from
+C<LOG_FILTER_NO_RE> environment.
+
 =item -file => 0 | 1|yes|true | PATH | {opts} | [{opts}, ...]
 
 Specify output to one or more files, using L<Log::Dispatch::FileWriteRotate>.
@@ -1424,7 +1563,9 @@ Log::Dispatch::FileWriteRotate's constructor), C<period> (will be passed to
 Log::Dispatch::FileWriteRotate's constructor), C<buffer_size> (will be passed to
 Log::Dispatch::FileWriteRotate's constructor), C<category> (a string of ref to
 array of strings), C<category_level> (a hashref, similar to -category_level),
-C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern).
+C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern),
+C<filter_text>, C<filter_no_text>, C<filter_citext>, C<filter_no_citext>,
+C<filter_re>, C<filter_no_re>.
 
 If the argument is an arrayref, it is assumed to be specifying multiple files,
 with each element of the array as a hashref.
@@ -1466,7 +1607,8 @@ C<max_age> (maximum age of files to keep, in seconds, undef means unlimited).
 C<histories> (number of old files to keep, excluding the current file),
 C<category>, C<category_level> (a hashref, similar to -category_level),
 C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern),
-C<filename_pattern> (pattern of file name).
+C<filename_pattern> (pattern of file name), C<filter_text>, C<filter_no_text>,
+C<filter_citext>, C<filter_no_citext>, C<filter_re>, C<filter_no_re>.
 
 If the argument is an arrayref, it is assumed to be specifying multiple
 directories, with each element of the array as a hashref.
@@ -1500,7 +1642,8 @@ the hashref must be one of: C<color> (default is true, set to 0 to turn off
 color), C<stderr> (default is true, set to 0 to log to stdout instead),
 C<level>, C<category>, C<category_level> (a hashref, similar to
 -category_level), C<pattern_style> (see L<"PATTERN STYLE">), C<pattern>
-(Log4perl string pattern).
+(Log4perl string pattern), C<filter_text>, C<filter_no_text>, C<filter_citext>,
+C<filter_no_citext>, C<filter_re>, C<filter_no_re>.
 
 How Log::Any::App determines defaults for screen logging:
 
@@ -1526,7 +1669,9 @@ argument is a true value that matches /^(1|yes|true)$/i, syslog logging will be
 turned on with default level, ident, etc. If the argument is a hashref, then the
 keys of the hashref must be one of: C<level>, C<ident>, C<facility>,
 C<category>, C<category_level> (a hashref, similar to -category_level),
-C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern).
+C<pattern_style> (see L<"PATTERN STYLES">), C<pattern> (Log4perl pattern),
+C<filter_text>, C<filter_no_text>, C<filter_citext>, C<filter_no_citext>,
+C<filter_re>, C<filter_no_re>.
 
 How Log::Any::App determines defaults for syslog logging:
 
@@ -1668,6 +1813,20 @@ Below is summary of environment variables used.
 =head2 Turn on showing elapsed time in screen
 
  LOG_ELAPSED_TIME_IN_SCREEN (bool)
+
+=head2 Filtering
+
+ LOG_FILTER_TEXT (str)
+ LOG_FILTER_NO_TEXT (str)
+ LOG_FILTER_CITEXT (str)
+ LOG_FILTER_NO_CITEXT (str)
+ LOG_FILTER_RE (str)
+ LOG_FILTER_NO_RE (str)
+
+=head2 Per-output filtering
+
+ {FILE,DIR,SCREEN,SYSLOG}_LOG_FILTER_TEXT (str)
+ and so on
 
 =head2 Extra things to log
 
