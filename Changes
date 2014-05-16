@@ -1,5 +1,12 @@
 Revision history for Alt-Log-Any-App-FWR
 
+0.09     2014-05-16 (SHARYANTO)
+
+         - No functional changes.
+
+         - Replace File::Slurp with File::Slurp::Tiny in test suite.
+
+
 0.08     2014-01-27 (SHARYANTO)
 
          - Increase Log::Any::App version to 0.44.
