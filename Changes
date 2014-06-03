@@ -1,4 +1,14 @@
-Revision history for Alt-Log-Any-App-FWR
+Revision history for Log-Any-App
+
+0.45     2014-06-03 (SHARYANTO) (not yet released)
+
+         - No functional changes.
+
+         - Rename distribution from Alt-Log-Any-App-FWR to Log-Any-App, since
+           this is now the only implementation of Log::Any::App. The old
+           Log::Dispatch::FileRotate-based Log::Any::App has been removed from
+           CPAN, leaving this File::Write::Rotate-based version. [RT#96162]
+
 
 0.09     2014-05-16 (SHARYANTO)
 
