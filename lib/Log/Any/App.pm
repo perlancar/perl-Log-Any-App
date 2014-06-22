@@ -1812,6 +1812,10 @@ Below is summary of environment variables used.
 
  LOG_ELAPSED_TIME_IN_SCREEN (bool)
 
+Note that elapsed time is currently produced using Log::Log4perl's %r (number of
+milliseconds since the program started, where program started means when
+Log::Log4perl starts counting time).
+
 =head2 Filtering
 
  LOG_FILTER_TEXT (str)
