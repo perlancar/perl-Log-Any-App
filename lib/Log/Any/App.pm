@@ -794,7 +794,6 @@ sub _default_unixsock {
         path => $> ? File::Spec->catfile(File::HomeDir->my_home, "$spec->{name}-log.sock") :
             "/var/run/$spec->{name}-log.sock", # XXX and on Windows?
         category => '',
-        create => 1,
         pattern_style => _set_pattern_style('daemon'),
         pattern => undef,
 
