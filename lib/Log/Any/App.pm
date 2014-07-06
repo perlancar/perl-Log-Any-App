@@ -1768,7 +1768,10 @@ You can also specify category level from environment SYSLOG_LOG_CATEGORY_LEVEL.
 =item -unixsock => 0 | 1|yes|true | PATH | {opts} | [{opts}, ...]
 
 Specify output to one or more Unix domain sockets, using
-L<Log::Log4perl::Appender::Socket::UNIX>.
+L<Log::Log4perl::Appender::Socket::UNIX>. Note that the Unix socket must already
+exist and listening; this output will send logs to a listening Unix socket,
+which will typically be another thread or process different from the
+application.
 
 If the argument is a false boolean value, Unix domain socket logging will be
 turned off. If argument is a true value that matches /^(1|yes|true)$/i, Unix
@@ -1787,7 +1790,7 @@ By default Unix domain socket logging is off._
 
 If the program runs as root, the default path is C</var/run/$NAME-log.sock>,
 where $NAME is taken from B<$0> (or C<-name>). Otherwise the default path is
-~/$NAME-log.sock. Intermediate directories will be made with L<File::Path>.
+~/$NAME-log.sock.
 
 If specified C<path> ends with a slash (e.g. "/my/log/"), it is assumed to be a
 directory and the final socket path is directory appended with $NAME-log.sock.
