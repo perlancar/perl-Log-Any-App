@@ -103,6 +103,9 @@ sub _gen_appender_config {
         $params->{mode}     = 'append';
         $params->{ident}    = $ospec->{ident};
         $params->{facility} = $ospec->{facility};
+    } elsif ($name =~ /^unixsock/i) {
+        $class = "Log::Log4perl::Appender::Socket::UNIX";
+        $params->{Socket} = $ospec->{path};
     } else {
         die "BUG: Unknown appender type: $name";
     }
@@ -126,7 +129,7 @@ sub _lit {
 sub _gen_l4p_config {
     my ($spec) = @_;
 
-    my @otypes = qw(file dir screen syslog);
+    my @otypes = qw(file dir screen syslog unixsock);
 
     # we use a custom perl code to implement filter_* specs.
     my @fccode;
@@ -509,10 +512,15 @@ sub _parse_opts {
     _parse_opt_syslog($spec, _ifdef($opts{syslog}, _is_daemon()));
     delete $opts{syslog};
 
+    $spec->{unixsock} = [];
+    _parse_opt_unixsock($spec, _ifdef($opts{unixsock}, 0));
+    delete $opts{unixsock};
+
     if (keys %opts) {
         die "Unknown option(s) ".join(", ", keys %opts)." Known opts are: ".
             "log, name, level, category_level, category_alias, dump, init, ".
-                "filter_{,no_}{text,citext,re}, file, dir, screen, syslog";
+                "filter_{,no_}{text,citext,re}, file, dir, screen, syslog, ".
+                    "unixsock";
     }
 
   END_PARSE_OPTS:
@@ -766,6 +774,75 @@ sub _parse_opt_syslog {
     _parse_opt_OUTPUT(
         kind => 'syslog', default_sub => \&_default_syslog,
         spec => $spec, arg => $arg,
+    );
+}
+
+sub _default_unixsock {
+    require File::HomeDir;
+
+    my ($spec) = @_;
+    my $level = _set_level("unixsock", "unixsock", $spec);
+    if (!$level) {
+        $level = $spec->{level};
+        _debug("Set level of unixsock to $level (general level)");
+    }
+    return {
+        level => $level,
+        category_level => _ifdefj($ENV{UNIXSOCK_LOG_CATEGORY_LEVEL},
+                                  $ENV{LOG_CATEGORY_LEVEL},
+                                  $spec->{category_level}),
+        path => $> ? File::Spec->catfile(File::HomeDir->my_home, "$spec->{name}-log.sock") :
+            "/var/run/$spec->{name}-log.sock", # XXX and on Windows?
+        category => '',
+        create => 1,
+        pattern_style => _set_pattern_style('daemon'),
+        pattern => undef,
+
+        filter_text      => _ifdef($ENV{UNIXSOCK_LOG_FILTER_TEXT}, $spec->{filter_text}),
+        filter_no_text   => _ifdef($ENV{UNIXSOCK_LOG_FILTER_NO_TEXT}, $spec->{filter_no_text}),
+        filter_citext    => _ifdef($ENV{UNIXSOCK_LOG_FILTER_CITEXT}, $spec->{filter_citext}),
+        filter_no_citext => _ifdef($ENV{UNIXSOCK_LOG_FILTER_NO_CITEXT}, $spec->{filter_no_citext}),
+        filter_re        => _ifdef($ENV{UNIXSOCK_LOG_FILTER_RE}, $spec->{filter_re}),
+        filter_no_re     => _ifdef($ENV{UNIXSOCK_LOG_FILTER_NO_RE}, $spec->{filter_no_re}),
+    };
+}
+
+sub _parse_opt_unixsock {
+    my ($spec, $arg) = @_;
+
+    if (!ref($arg) && $arg && $arg !~ /^(1|yes|true)$/i) {
+        $arg = {path => $arg};
+    }
+
+    _parse_opt_OUTPUT(
+        kind => 'unixsock', default_sub => \&_default_unixsock,
+        spec => $spec, arg => $arg,
+        postprocess => sub {
+            my (%args) = @_;
+            my $spec  = $args{spec};
+            my $ospec = $args{ospec};
+            if ($ospec->{path} =~ m!/$!) {
+                my $p = $ospec->{path};
+                $p .= "$spec->{name}-log.sock";
+                _debug("Unix socket path ends with /, assumed to be dir, ".
+                           "final path becomes $p");
+                $ospec->{path} = $p;
+            }
+
+            # currently Log::Log4perl::Appender::Socket::UNIX *connects to an
+            # existing and listening* Unix socket and prints log to it. we are
+            # *not* creating a listening unix socket where clients can connect
+            # and see logs. to do that, we'll need a separate thread/process
+            # that listens to unix socket and stores (some) log entries and
+            # display it to users when they connect and request them.
+            #
+            #if ($ospec->{create} && !(-e $ospec->{path})) {
+            #    _debug("Creating Unix socket $ospec->{path} ...");
+            #    require SHARYANTO::IO::Socket::UNIX::Util;
+            #    SHARYANTO::IO::Socket::UNIX::Util::create_unix_socket(
+            #        $ospec->{path});
+            #}
+        },
     );
 }
 
@@ -1687,6 +1764,41 @@ B<SYSLOG_TRACE>, B<SYSLOG_DEBUG>, B<SYSLOG_VERBOSE>, B<SYSLOG_QUIET>, and the
 similars).
 
 You can also specify category level from environment SYSLOG_LOG_CATEGORY_LEVEL.
+
+=item -unixsock => 0 | 1|yes|true | PATH | {opts} | [{opts}, ...]
+
+Specify output to one or more Unix domain sockets, using
+L<Log::Log4perl::Appender::Socket::UNIX>.
+
+If the argument is a false boolean value, Unix domain socket logging will be
+turned off. If argument is a true value that matches /^(1|yes|true)$/i, Unix
+domain socket logging will be turned on with default path, etc. If the argument
+is another scalar value then it is assumed to be a path. If the argument is a
+hashref, then the keys of the hashref must be one of: C<level>, C<path>,
+C<filter_text>, C<filter_no_text>, C<filter_citext>, C<filter_no_citext>,
+C<filter_re>, C<filter_no_re>.
+
+If the argument is an arrayref, it is assumed to be specifying multiple sockets,
+with each element of the array as a hashref.
+
+How Log::Any::App determines defaults for Unix domain socket logging:
+
+By default Unix domain socket logging is off._
+
+If the program runs as root, the default path is C</var/run/$NAME-log.sock>,
+where $NAME is taken from B<$0> (or C<-name>). Otherwise the default path is
+~/$NAME-log.sock. Intermediate directories will be made with L<File::Path>.
+
+If specified C<path> ends with a slash (e.g. "/my/log/"), it is assumed to be a
+directory and the final socket path is directory appended with $NAME-log.sock.
+
+Default level is the same as the global level set by B<-level>. But
+App::options, command line, environment, level flag file, and package variables
+in main are also searched first (for B<UNIXSOCK_LOG_LEVEL>, B<UNIXSOCK_TRACE>,
+B<UNIXSOCK_DEBUG>, B<UNIXSOCK_VERBOSE>, B<UNIXSOCK_QUIET>, and the similars).
+
+You can also specify category level from environment
+UNIXSOCK_LOG_CATEGORY_LEVEL.
 
 =item -dump => BOOL
 
