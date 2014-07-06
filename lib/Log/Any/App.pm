@@ -1898,6 +1898,7 @@ Below is summary of environment variables used.
  SCREEN_TRACE and so on
  DIR_TRACE and so on
  SYSLOG_TRACE and so on
+ UNIXSOCK_TRACE and so on
 
 =head2 Setting per-category level
 
@@ -1942,7 +1943,7 @@ Log::Log4perl starts counting time).
 
 =head2 Per-output filtering
 
- {FILE,DIR,SCREEN,SYSLOG}_LOG_FILTER_TEXT (str)
+ {FILE,DIR,SCREEN,SYSLOG,UNIXSOCK}_LOG_FILTER_TEXT (str)
  and so on
 
 =head2 Extra things to log
