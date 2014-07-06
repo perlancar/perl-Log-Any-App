@@ -106,6 +106,10 @@ sub _gen_appender_config {
     } elsif ($name =~ /^unixsock/i) {
         $class = "Log::Log4perl::Appender::Socket::UNIX";
         $params->{Socket} = $ospec->{path};
+    } elsif ($name =~ /^array/i) {
+        $class = "Log::Dispatch::ArrayWithLimits";
+        $params->{array}     = $ospec->{array};
+        $params->{max_elems} = $ospec->{max_elems};
     } else {
         die "BUG: Unknown appender type: $name";
     }
@@ -129,7 +133,7 @@ sub _lit {
 sub _gen_l4p_config {
     my ($spec) = @_;
 
-    my @otypes = qw(file dir screen syslog unixsock);
+    my @otypes = qw(file dir screen syslog unixsock array);
 
     # we use a custom perl code to implement filter_* specs.
     my @fccode;
@@ -516,11 +520,15 @@ sub _parse_opts {
     _parse_opt_unixsock($spec, _ifdef($opts{unixsock}, 0));
     delete $opts{unixsock};
 
+    $spec->{array} = [];
+    _parse_opt_array($spec, _ifdef($opts{array}, 0));
+    delete $opts{array};
+
     if (keys %opts) {
         die "Unknown option(s) ".join(", ", keys %opts)." Known opts are: ".
             "log, name, level, category_level, category_alias, dump, init, ".
                 "filter_{,no_}{text,citext,re}, file, dir, screen, syslog, ".
-                    "unixsock";
+                    "unixsock, array";
     }
 
   END_PARSE_OPTS:
@@ -842,6 +850,42 @@ sub _parse_opt_unixsock {
             #        $ospec->{path});
             #}
         },
+    );
+}
+
+sub _default_array {
+    my ($spec) = @_;
+    my $level = _set_level("array", "array", $spec);
+    if (!$level) {
+        $level = $spec->{level};
+        _debug("Set level of array to $level (general level)");
+    }
+    return {
+        level => $level,
+        category_level => _ifdefj($ENV{ARRAY_LOG_CATEGORY_LEVEL},
+                                  $ENV{LOG_CATEGORY_LEVEL},
+                                  $spec->{category_level}),
+        array => [],
+        max_elems => undef,
+        category => '',
+        pattern_style => _set_pattern_style('script_long'),
+        pattern => undef,
+
+        filter_text      => _ifdef($ENV{ARRAY_LOG_FILTER_TEXT}, $spec->{filter_text}),
+        filter_no_text   => _ifdef($ENV{ARRAY_LOG_FILTER_NO_TEXT}, $spec->{filter_no_text}),
+        filter_citext    => _ifdef($ENV{ARRAY_LOG_FILTER_CITEXT}, $spec->{filter_citext}),
+        filter_no_citext => _ifdef($ENV{ARRAY_LOG_FILTER_NO_CITEXT}, $spec->{filter_no_citext}),
+        filter_re        => _ifdef($ENV{ARRAY_LOG_FILTER_RE}, $spec->{filter_re}),
+        filter_no_re     => _ifdef($ENV{ARRAY_LOG_FILTER_NO_RE}, $spec->{filter_no_re}),
+    };
+}
+
+sub _parse_opt_array {
+    my ($spec, $arg) = @_;
+
+    _parse_opt_OUTPUT(
+        kind => 'array', default_sub => \&_default_array,
+        spec => $spec, arg => $arg,
     );
 }
 
@@ -1806,6 +1850,40 @@ B<UNIXSOCK_DEBUG>, B<UNIXSOCK_VERBOSE>, B<UNIXSOCK_QUIET>, and the similars).
 You can also specify category level from environment
 UNIXSOCK_LOG_CATEGORY_LEVEL.
 
+=item -array => 0 | {opts} | [{opts}, ...]
+
+Specify output to one or more Perl arrays. Logging will be done using
+L<Log::Dispatch::ArrayWithLimits>. Note that the syntax is:
+
+ -array => {array=>$ary}
+
+and not just:
+
+ -array => $ary
+
+because that will be interpreted as multiple array outputs:
+
+ -array => [{output1}, ...]
+
+If the argument is a false boolean value, Unix domain socket logging will be
+turned off. Otherwise argument must be a hashref or an arrayref (to specify
+multiple outputs). If the argument is a hashref, then the keys of the hashref
+must be one of: C<level>, C<array> (defaults to new anonymous array []),
+C<filter_text>, C<filter_no_text>, C<filter_citext>, C<filter_no_citext>,
+C<filter_re>, C<filter_no_re>. If the argument is an arrayref, it is assumed to
+be specifying multiple sockets, with each element of the array as a hashref.
+
+How Log::Any::App determines defaults for array logging:
+
+By default array logging is off.
+
+Default level is the same as the global level set by B<-level>. But
+App::options, command line, environment, level flag file, and package variables
+in main are also searched first (for B<ARRAY_LOG_LEVEL>, B<ARRAY_TRACE>,
+B<ARRAY_DEBUG>, B<ARRAY_VERBOSE>, B<ARRAY_QUIET>, and the similars).
+
+You can also specify category level from environment ARRAY_LOG_CATEGORY_LEVEL.
+
 =item -dump => BOOL
 
 If set to true then Log::Any::App will dump the generated Log4perl config.
@@ -1902,6 +1980,7 @@ Below is summary of environment variables used.
  DIR_TRACE and so on
  SYSLOG_TRACE and so on
  UNIXSOCK_TRACE and so on
+ ARRAY_TRACE and so on
 
 =head2 Setting per-category level
 
@@ -1946,7 +2025,7 @@ Log::Log4perl starts counting time).
 
 =head2 Per-output filtering
 
- {FILE,DIR,SCREEN,SYSLOG,UNIXSOCK}_LOG_FILTER_TEXT (str)
+ {FILE,DIR,SCREEN,SYSLOG,UNIXSOCK,ARRAY}_LOG_FILTER_TEXT (str)
  and so on
 
 =head2 Extra things to log
@@ -2028,6 +2107,57 @@ You can use the Log4perl adapter directly and write your own Log4perl
 configuration (or even other adapters). Log::Any::App is meant for quick and
 simple logging output needs anyway (but do tell me if your logging output needs
 are reasonably simple and should be supported by Log::Any::App).
+
+=head2 What is array output for?
+
+Logging to a Perl array might be useful for testing/debugging, or (one use-case
+I can think of) for letting users of your program connect/request your program
+to view the logs being produced. For example, here is a program that uses a
+separate thread to listen to Unix socket. Requires perl built with threads
+enabled.
+
+ use threads;
+ use threads::shared;
+ BEGIN { our @buf :shared }
+ use SHARYANTO::IO::Socket::UNIX::Util qw(create_unix_stream_socket);
+ use Log::Any::App '$log', -array => [{array => 'main::buf', max_elems=>100}];
+
+ my $sock = create_unix_stream_socket('/tmp/app-logview.sock');
+
+ # thread to listen to unix socket and receive log viewing instruction
+ my $thr = threads->create(
+    sub {
+        local $| = 1;
+        while (my $cli = $sock->accept) {
+            while (1) {
+                print $cli "> ";
+                my $line = <$cli>;
+                last unless $line;
+                if ($line =~ /\Ar(ead)?\b/i) {
+                    print $cli @buf;
+                } else {
+                    print $cli "Unknown command\n";
+                }
+            }
+        }
+    });
+
+ # main thread, application which produces logs
+ $|++;
+ while (1) {
+     $log->warnf("Log (%d) ...", ++$i);
+     sleep 1;
+ }
+
+After you run this program, you can connect to it, e.g. from another terminal:
+
+ % socat UNIX-CONNECT:/tmp/app-logview.sock -
+ > read
+ [2014/07/06 23:34:49] Log (1) ...
+ [2014/07/06 23:34:50] Log (2) ...
+ [2014/07/06 23:34:50] Log (3) ...
+ [2014/07/06 23:34:51] Log (4) ...
+ [2014/07/06 23:34:51] Log (5) ...
 
 
 =head1 BUGS/TODOS
