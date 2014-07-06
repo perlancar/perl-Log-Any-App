@@ -15,7 +15,7 @@ use Log::Any::Adapter;
 
 use vars qw($dbg_ctx);
 
-my %PATTERN_STYLES = (
+our %PATTERN_STYLES = (
     plain             => '%m',
     plain_nl          => '%m%n',
     script_short      => '[%r] %m%n',
