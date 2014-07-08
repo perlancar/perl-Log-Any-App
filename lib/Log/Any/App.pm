@@ -1865,13 +1865,13 @@ because that will be interpreted as multiple array outputs:
 
  -array => [{output1}, ...]
 
-If the argument is a false boolean value, Unix domain socket logging will be
-turned off. Otherwise argument must be a hashref or an arrayref (to specify
-multiple outputs). If the argument is a hashref, then the keys of the hashref
-must be one of: C<level>, C<array> (defaults to new anonymous array []),
-C<filter_text>, C<filter_no_text>, C<filter_citext>, C<filter_no_citext>,
-C<filter_re>, C<filter_no_re>. If the argument is an arrayref, it is assumed to
-be specifying multiple sockets, with each element of the array as a hashref.
+If the argument is a false boolean value, array logging will be turned off.
+Otherwise argument must be a hashref or an arrayref (to specify multiple
+outputs). If the argument is a hashref, then the keys of the hashref must be one
+of: C<level>, C<array> (defaults to new anonymous array []), C<filter_text>,
+C<filter_no_text>, C<filter_citext>, C<filter_no_citext>, C<filter_re>,
+C<filter_no_re>. If the argument is an arrayref, it is assumed to be specifying
+multiple sockets, with each element of the array as a hashref.
 
 How Log::Any::App determines defaults for array logging:
 
@@ -2111,10 +2111,11 @@ are reasonably simple and should be supported by Log::Any::App).
 =head2 What is array output for?
 
 Logging to a Perl array might be useful for testing/debugging, or (one use-case
-I can think of) for letting users of your program connect/request your program
-to view the logs being produced. For example, here is a program that uses a
-separate thread to listen to Unix socket. Requires perl built with threads
-enabled.
+I can think of) for letting users of your program connect to your program
+directly to request viewing the logs being produced (although logging to other
+outputs doesn't preclude this ability). For example, here is a program that uses
+a separate thread to listen to Unix socket for requests to view the (last 100)
+logs. Requires perl built with threads enabled.
 
  use threads;
  use threads::shared;
