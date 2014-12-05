@@ -1,5 +1,8 @@
 package Log::Any::App;
 
+# DATE
+# VERSION
+
 # i need this to run on centos 5.x. otherwise all my other servers are debian
 # 5.x and 6.x+ (perl 5.010).
 use 5.008000;
@@ -11,7 +14,6 @@ use File::Spec;
 use Log::Any 0.14;
 use Log::Any::Adapter;
 
-# VERSION
 
 use vars qw($dbg_ctx);
 
@@ -845,8 +847,8 @@ sub _parse_opt_unixsock {
             #
             #if ($ospec->{create} && !(-e $ospec->{path})) {
             #    _debug("Creating Unix socket $ospec->{path} ...");
-            #    require SHARYANTO::IO::Socket::UNIX::Util;
-            #    SHARYANTO::IO::Socket::UNIX::Util::create_unix_socket(
+            #    require IO::Socket::UNIX::Util;
+            #    IO::Socket::UNIX::Util::create_unix_socket(
             #        $ospec->{path});
             #}
         },
@@ -2120,7 +2122,7 @@ logs. Requires perl built with threads enabled.
  use threads;
  use threads::shared;
  BEGIN { our @buf :shared }
- use SHARYANTO::IO::Socket::UNIX::Util qw(create_unix_stream_socket);
+ use IO::Socket::UNIX::Util qw(create_unix_stream_socket);
  use Log::Any::App '$log', -array => [{array => 'main::buf', max_elems=>100}];
 
  my $sock = create_unix_stream_socket('/tmp/app-logview.sock');
