@@ -11,7 +11,7 @@ use warnings;
 
 use File::Path qw(make_path);
 use File::Spec;
-use Log::Any 0.14;
+use Log::Any::IfLOG;
 use Log::Any::Adapter;
 
 

@@ -37,42 +37,42 @@ use Log::Any::App '$log',
 use Test::More tests => 2;
 
 package Foo;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 sub f {
     my $p = __PACKAGE__;
     $log->trace("(t,$p)"); $log->debug("(d,$p)"); $log->info ("(i,$p)");
     $log->warn ("(w,$p)"); $log->error("(e,$p)"); $log->fatal("(f,$p)");
 }
 package Foo::Bar;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 sub f {
     my $p = __PACKAGE__;
     $log->trace("(t,$p)"); $log->debug("(d,$p)"); $log->info ("(i,$p)");
     $log->warn ("(w,$p)"); $log->error("(e,$p)"); $log->fatal("(f,$p)");
 }
 package Foo::Bar::Baz;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 sub f {
     my $p = __PACKAGE__;
     $log->trace("(t,$p)"); $log->debug("(d,$p)"); $log->info ("(i,$p)");
     $log->warn ("(w,$p)"); $log->error("(e,$p)"); $log->fatal("(f,$p)");
 }
 package Bar;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 sub f {
     my $p = __PACKAGE__;
     $log->trace("(t,$p)"); $log->debug("(d,$p)"); $log->info ("(i,$p)");
     $log->warn ("(w,$p)"); $log->error("(e,$p)"); $log->fatal("(f,$p)");
 }
 package Bar::Baz;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 sub f {
     my $p = __PACKAGE__;
     $log->trace("(t,$p)"); $log->debug("(d,$p)"); $log->info ("(i,$p)");
     $log->warn ("(w,$p)"); $log->error("(e,$p)"); $log->fatal("(f,$p)");
 }
 package Bar::Baz::Qux;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 sub f {
     my $p = __PACKAGE__;
     $log->trace("(t,$p)"); $log->debug("(d,$p)"); $log->info ("(i,$p)");
