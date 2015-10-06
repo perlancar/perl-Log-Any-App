@@ -461,6 +461,7 @@ sub _parse_opts {
     $spec->{daemon} = 0;
     if (defined $opts{daemon}) {
         $spec->{daemon} = $opts{daemon};
+        _debug("setting is_daemon=$opts{daemon} (from daemon option)");
         $is_daemon = $opts{daemon};
         delete $opts{daemon};
     }
@@ -540,26 +541,36 @@ sub _parse_opts {
 
 sub _is_daemon {
     if (defined $is_daemon) { return $is_daemon }
-    if (defined $main::IS_DAEMON) { return $main::IS_DAEMON }
+    if (defined $main::IS_DAEMON) {
+        $is_daemon = $main::IS_DAEMON;
+        _debug("Setting is_daemon=$main::IS_DAEMON (from \$main::IS_DAEMON)");
+        return $main::IS_DAEMON;
+    }
 
-    my $res =
-        $INC{"App/Daemon.pm"} ||
-        $INC{"Daemon/Easy.pm"} ||
-        $INC{"Daemon/Daemonize.pm"} ||
-        $INC{"Daemon/Generic.pm"} ||
-        $INC{"Daemonise.pm"} ||
-        $INC{"Daemon/Simple.pm"} ||
-        $INC{"HTTP/Daemon.pm"} ||
-        $INC{"IO/Socket/INET/Daemon.pm"} ||
-        $INC{"Mojo/Server/Daemon.pm"} ||
-        $INC{"MooseX/Daemonize.pm"} ||
-        $INC{"Net/Daemon.pm"} ||
-        $INC{"Net/Server.pm"} ||
-        $INC{"Proc/Daemon.pm"} ||
-        $INC{"Proc/PID/File.pm"} ||
-        $INC{"Win32/Daemon/Simple.pm"}
-            ;
-    if (defined $res) { return $res }
+    for (
+        "App/Daemon.pm",
+        "Daemon/Easy.pm",
+        "Daemon/Daemonize.pm",
+        "Daemon/Generic.pm",
+        "Daemonise.pm",
+        "Daemon/Simple.pm",
+        "HTTP/Daemon.pm",
+        "IO/Socket/INET/Daemon.pm",
+        "Mojo/Server/Daemon.pm",
+        "MooseX/Daemonize.pm",
+        "Net/Daemon.pm",
+        "Net/Server.pm",
+        "Proc/Daemon.pm",
+        "Proc/PID/File.pm",
+        "Win32/Daemon/Simple.pm") {
+        if ($INC{$_}) {
+            _debug("setting is_daemon=1 (from existence of module $_)");
+            $is_daemon = 1;
+            return 1;
+        }
+    }
+    _debug("setting is_daemon=0 (no indication that we are a daemon)");
+    $is_daemon = 0;
     0;
 }
 
