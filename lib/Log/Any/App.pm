@@ -556,7 +556,7 @@ sub _is_daemon {
         "Daemon/Simple.pm",
         "HTTP/Daemon.pm",
         "IO/Socket/INET/Daemon.pm",
-        "Mojo/Server/Daemon.pm",
+        #"Mojo/Server/Daemon.pm", # simply loading Mojo::UserAgent will load this too
         "MooseX/Daemonize.pm",
         "Net/Daemon.pm",
         "Net/Server.pm",
