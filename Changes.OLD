@@ -1,4 +1,11 @@
-Revision history for Log-Any-App
+Revision history for Log-Any-App. This is the original version of Log-Any-App.
+After 0.42 (2012-12-28), a new alternate distribution Alt-Log-Any-App-FWR was
+developed which uses File::Write::Rotate for file logging to replace
+Log::Dispatch::FileRotate (see File-Write-Rotate's documentation for more
+details on the motivation to develop the module to replace
+Log::Dispatch::FileRotate). Development of new features then moves to this
+alternate distribution. After a while, this distribution is retired and
+Alt-Log-Any-App-FWR becomes the new Log-Any-App.
 
 0.43     2013-01-18 (SHARYANTO)
 
