@@ -1,5 +1,13 @@
 Revision history for Log-Any-App
 
+0.51    2015-10-06 (PERLANCAR)
+
+	- No functional changes.
+
+	- Add Changes.OLD from the original/previous Log-Any-App
+	  distribution.
+
+
 0.50    2015-10-06 (PERLANCAR)
 
 	- Don't assume the presence of Mojo/Server/Daemon.pm as being
