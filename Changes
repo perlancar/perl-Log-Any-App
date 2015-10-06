@@ -102,3 +102,5 @@ Revision history for Log-Any-App
          - First release as Alt-Log-Any-App-FWR. Renamed from Log-Any-App09.
           Also, version number reset to 0.01 while Log::Any::App is back to 0.41
           (now manually set instead of using # VERSION).
+
+         - See also Changes.OLD for the Changes of the original Log-Any-App.
