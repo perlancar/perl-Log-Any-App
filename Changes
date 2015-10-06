@@ -1,5 +1,14 @@
 Revision history for Log-Any-App
 
+0.50    2015-10-06 (PERLANCAR)
+
+	- Don't assume the presence of Mojo/Server/Daemon.pm as being
+	  daemon (false positive), because loading Mojo::UserAgent alone
+	  will load this module.
+
+	- Debug the process of determining is_daemon.
+
+
 0.49    2015-08-17 (PERLANCAR)
 
 	- Switch from Log::Any to Log::Any::IfLOG.

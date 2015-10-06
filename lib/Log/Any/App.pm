@@ -57,6 +57,8 @@ sub _ifdefj {
 sub init {
     return if $init_called++;
 
+    $is_daemon = undef;
+
     my ($args, $caller) = @_;
     $caller ||= caller();
 
