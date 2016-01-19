@@ -1,5 +1,13 @@
 Revision history for Log-Any-App
 
+0.52    2016-01-19 (PERLANCAR)
+
+	- No functional changes.
+
+        - Bump prereq versions to force updates: File::Write::Rotate to 0.29,
+          Log::Dispatch::FileWriteRotate to 0.04 [RT#110234].
+
+
 0.51    2015-10-06 (PERLANCAR)
 
 	- No functional changes.
