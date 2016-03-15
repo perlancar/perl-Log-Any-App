@@ -14,7 +14,6 @@ use File::Spec;
 use Log::Any::IfLOG;
 use Log::Any::Adapter;
 
-
 use vars qw($dbg_ctx);
 
 our %PATTERN_STYLES = (
@@ -45,11 +44,11 @@ sub _ifdef {
 
 # j=as json (except the last default)
 sub _ifdefj {
-    require JSON;
+    require JSON::MaybeXS;
 
     my $def = pop @_;
     for (@_) {
-        return JSON::decode_json($_) if defined($_);
+        return JSON::MaybeXS::decode_json($_) if defined($_);
     }
     $def;
 }
