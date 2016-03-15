@@ -1,5 +1,12 @@
 Revision history for Log-Any-App
 
+0.53    2016-03-16 (PERLANCAR)
+
+	- No functional changes.
+
+	- Replace JSON with JSON::MaybeXS.
+
+
 0.52    2016-01-19 (PERLANCAR)
 
 	- No functional changes.
