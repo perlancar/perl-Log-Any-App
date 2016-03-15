@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 use Log::Any::App -dir => 0, -file => 0, -screen => 0, -syslog => 0, -init => 0;
-use File::Slurp::Tiny qw(write_file);
+use File::Slurper qw(write_text);
 use File::Temp qw(tempdir);
 use Test::More;
 
@@ -139,7 +139,7 @@ my $tempdir = tempdir(CLEANUP => 1);
 chdir $tempdir or die "Can't chdir to $tempdir: $!";
 for my $test (@lfftests) {
     my $flag_file = "$tempdir/prog.$test->{ext}";
-    write_file($flag_file, defined($test->{content}) ? $test->{content} : "");
+    write_text($flag_file, defined($test->{content}) ? $test->{content} : "");
     my %args = (
         name  => "setting output level via level flag file: $flag_file",
         init_args => [-name => 'prog', -level_flag_paths => [$tempdir]],

@@ -11,7 +11,7 @@ BEGIN {
 use strict;
 use warnings;
 
-use File::Slurp::Tiny qw(read_file);
+use File::Slurper qw(read_text);
 use File::Temp qw/tempfile tempdir/;
 my ($f0path, $f1path);
 BEGIN {
@@ -92,8 +92,8 @@ Bar::f();
 Bar::Baz::f();
 Bar::Baz::Qux::f();
 
-#print "f1:\n", read_file($f0path),"\n";
-#print "f2:\n", read_file($f1path),"\n";
+#print "f1:\n", read_text($f0path),"\n";
+#print "f2:\n", read_text($f1path),"\n";
 
 # general level         : warn
 # general category_level: Foo::Bar=>off, Bar::Baz=>off
@@ -128,5 +128,5 @@ my $f1content = join(
     # Bar::Baz = off (from general category_level)
 );
 
-is(read_file($f0path), $f0content, "FILE0");
-is(read_file($f1path), $f1content, "FILE1");
+is(read_text($f0path), $f0content, "FILE0");
+is(read_text($f1path), $f1content, "FILE1");
